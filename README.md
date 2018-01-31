@@ -27,4 +27,4 @@ The remaining items in the sample get added to the children of the selected item
    ('Apples', [])
 ])
 ```
-Then, the result gets put back in the list and repeat until one node remains in the list. From there repeat The process on the children of that node until we end up with a linked list and there is the ordering.
+Then, the result gets put back in the list and repeat until one node remains in the list. From there, repeat The process on the children of that node until we end up with a linked list and there is the ordering.
