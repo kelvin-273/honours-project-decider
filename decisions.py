@@ -15,7 +15,6 @@ def fst(tree):
 
 # snd :: Tree item -> [Tree item]
 def snd(tree):
-    # print(tree)
     return tree[1]
 
 # add_children :: Tree item -> [Tree item] -> Tree item
@@ -47,9 +46,9 @@ def choose(n, sample):
     return add_children(parent, sample)
 
 # step :: [Tree item] -> [Tree item]
-def step(xs, show=lambda x: str(fst(x)), get_n=lambda m: 2):
+def step(xs, show=lambda x: str(fst(x))):
     shuffle(xs)
-    n = randint(2, get_n(len(xs)))
+    n = randint(2, func(len(xs)))
     choices = take(n, xs)
     remains = drop(n, xs)
     ns, ss, fs = make_options(choices, remains, show)
@@ -68,29 +67,30 @@ def step(xs, show=lambda x: str(fst(x)), get_n=lambda m: 2):
 # make_options :: [Tree item] -> ([Int], [Tree item], ?[Tree item])
 def make_options(sample, remains, show=lambda x: str(fst(x))):
     ns = range(len(sample))
-    ss = lmap(show, sample) + ["Pass", "Quit", "Random", "Current State"]
+    ss = lmap(show, sample) + ["Delete All", "Pass", "Quit", "Random", "Current State"]
     fs = lmap(lambda n: (lambda: [choose(n, sample)] + remains), ns) + [
+        lambda: remains,
         lambda: sample + remains,
         lambda: [],
         lambda: [choose(randint(0, len(sample) - 1), sample)] + remains,
         lambda: [pure(sample + remains)]
     ]
-    ns = lmap(str, ns) + ["p", "q", "r", "c"]
+    ns = lmap(str, ns) + ["dd", "p", "q", "r", "c"]
     return ns, ss, fs
 
-def list_to_link(xs, show=lambda x: str(fst(x)), get_n=lambda m: 2, depth=0):
+def list_to_link(xs, show=lambda x: str(fst(x)), depth=0):
     print("Current depth:", depth)
     while len(xs) > 1:
         print("Items at current depth:", len(xs))
-        xs = step(xs, show=show, get_n=get_n)
+        xs = step(xs, show=show)
     if xs == []:
         return []
     else:
-        return [fst(xs[0])] + list_to_link(snd(xs[0]), show=show, get_n=get_n,
+        return [fst(xs[0])] + list_to_link(snd(xs[0]), show=show,
                                            depth=depth + 1)
 
-def decider(items, show=lambda x: str(fst(x)), get_n=lambda m: 2):
-    output = list_to_link(lmap(pure, items), show=show, get_n=get_n)
+def decider(items, show=lambda x: str(fst(x))):
+    output = list_to_link(lmap(pure, items), show=show)
     if any(map(is_list_of_trees, output)):
         with open("save.txt", "w") as f:
             f.write(str(output))
@@ -108,34 +108,37 @@ def is_list_of_trees(obj):
     else:
         return all(map(is_tree, obj))
 
-def continue_from_file(arg, show=lambda x: str(fst(x)), get_n=lambda m: 2):
-    with open(arg, "r") as f:
+def continue_from_file(filename, show=lambda x: str(fst(x))):
+    with open(filename, "r") as f:
         xs = eval(f.read())
-    output = list_to_link(xs, show=show, get_n=get_n)
+    confirmed = [i for i in xs if not is_list_of_trees(i)]
+    unconfirmed = [i for i in xs if is_list_of_trees(i)]
+    assert len(unconfirmed) < 2
+    output = list_to_link(unconfirmed[0], show=show, depth=len(confirmed))
     if any(map(is_list_of_trees, output)):
-        with open(arg, "w") as f:
+        with open(filename, "w") as f:
             f.write(str(output))
     return output
 
 # adaptive sample size
 # parameters estimated thorough trial and error
-f = lambda m: int(10 - 8*exp(-(m-2)/20))
+func = lambda m: int(10 - 8*exp(-(m-2)/20))
 
 if __name__ == '__main__':
     from extract_table import extract_table
-    selectables = [
-        "asdf1",
-        "asdf2",
-        "asdf3",
-        "asdf4",
-        "asdf5",
-        "asdf6",
-        "asdf7",
-        "asdf8",
-        "asdf9",
-        "asdf10",
-        "asdf11",
-        "asdf12",
-    ]
-    print(decider(selectables, get_n=f))
-    # print(decider(extract_table("table.html"), show=lambda x: (fst(x)["Project Title"]), get_n=f))
+    # selectables = [
+    #     "asdf1",
+    #     "asdf2",
+    #     "asdf3",
+    #     "asdf4",
+    #     "asdf5",
+    #     "asdf6",
+    #     "asdf7",
+    #     "asdf8",
+    #     "asdf9",
+    #     "asdf10",
+    #     "asdf11",
+    #     "asdf12",
+    # ]
+    # print(decider(selectables))
+    print(decider(extract_table("table.html"), show=lambda x: (fst(x)["Project Title"])))
