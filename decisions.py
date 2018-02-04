@@ -15,6 +15,7 @@ def fst(tree):
 
 # snd :: Tree item -> [Tree item]
 def snd(tree):
+    # print(tree)
     return tree[1]
 
 # add_children :: Tree item -> [Tree item] -> Tree item
@@ -48,7 +49,7 @@ def choose(n, sample):
 # step :: [Tree item] -> [Tree item]
 def step(xs, show=lambda x: str(fst(x)), get_n=lambda m: 2):
     shuffle(xs)
-    n = randint(2, get_n(len(xs)) + 1)
+    n = randint(2, get_n(len(xs)))
     choices = take(n, xs)
     remains = drop(n, xs)
     ns, ss, fs = make_options(choices, remains, show)
@@ -67,19 +68,20 @@ def step(xs, show=lambda x: str(fst(x)), get_n=lambda m: 2):
 # make_options :: [Tree item] -> ([Int], [Tree item], ?[Tree item])
 def make_options(sample, remains, show=lambda x: str(fst(x))):
     ns = range(len(sample))
-    ss = lmap(show, sample) + ["Pass", "Quit", "Random"]
+    ss = lmap(show, sample) + ["Pass", "Quit", "Random", "Current State"]
     fs = lmap(lambda n: (lambda: [choose(n, sample)] + remains), ns) + [
         lambda: sample + remains,
         lambda: [],
-        lambda: [choose(randint(0, len(sample) - 1), sample)] + remains
+        lambda: [choose(randint(0, len(sample) - 1), sample)] + remains,
+        lambda: [pure(sample + remains)]
     ]
-    ns = lmap(str, ns) + ["p", "q", "r"]
+    ns = lmap(str, ns) + ["p", "q", "r", "c"]
     return ns, ss, fs
 
 def list_to_link(xs, show=lambda x: str(fst(x)), get_n=lambda m: 2, depth=0):
     print("Current depth:", depth)
     while len(xs) > 1:
-        # pprint(xs)
+        print("Items at current depth:", len(xs))
         xs = step(xs, show=show, get_n=get_n)
     if xs == []:
         return []
@@ -87,9 +89,33 @@ def list_to_link(xs, show=lambda x: str(fst(x)), get_n=lambda m: 2, depth=0):
         return [fst(xs[0])] + list_to_link(snd(xs[0]), show=show, get_n=get_n,
                                            depth=depth + 1)
 
-
 def decider(items, show=lambda x: str(fst(x)), get_n=lambda m: 2):
-    return list_to_link(lmap(pure, items), show=show, get_n=get_n)
+    output = list_to_link(lmap(pure, items), show=show, get_n=get_n)
+    if any(map(is_list_of_trees, output)):
+        with open("save.txt", "w") as f:
+            f.write(str(output))
+    return output
+
+def is_tree(obj):
+    if not type(obj) is tuple: return False
+    if not len(obj) == 2: return False
+    if not type(snd(obj)) is list: return False
+    return all(map(is_tree, snd(obj))) # True if snd(obj) == []
+
+def is_list_of_trees(obj):
+    if not type(obj) is list:
+        return False
+    else:
+        return all(map(is_tree, obj))
+
+def continue_from_file(arg, show=lambda x: str(fst(x)), get_n=lambda m: 2):
+    with open(arg, "r") as f:
+        xs = eval(f.read())
+    output = list_to_link(xs, show=show, get_n=get_n)
+    if any(map(is_list_of_trees, output)):
+        with open(arg, "w") as f:
+            f.write(str(output))
+    return output
 
 # adaptive sample size
 # parameters estimated thorough trial and error
@@ -97,19 +123,19 @@ f = lambda m: int(10 - 8*exp(-(m-2)/20))
 
 if __name__ == '__main__':
     from extract_table import extract_table
-    # selectables = [
-    #     "asdf1",
-    #     "asdf2",
-    #     "asdf3",
-    #     "asdf4",
-    #     "asdf5",
-    #     "asdf6",
-    #     "asdf7",
-    #     "asdf8",
-    #     "asdf9",
-    #     "asdf10",
-    #     "asdf11",
-    #     "asdf12",
-    # ]
-    # print(decider(selectables, get_n=f))
-    print(decider(extract_table("table.html"), show=lambda x: (fst(x)["Project Title"])))
+    selectables = [
+        "asdf1",
+        "asdf2",
+        "asdf3",
+        "asdf4",
+        "asdf5",
+        "asdf6",
+        "asdf7",
+        "asdf8",
+        "asdf9",
+        "asdf10",
+        "asdf11",
+        "asdf12",
+    ]
+    print(decider(selectables, get_n=f))
+    # print(decider(extract_table("table.html"), show=lambda x: (fst(x)["Project Title"]), get_n=f))
