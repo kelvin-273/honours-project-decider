@@ -1,7 +1,8 @@
 from random import randint, shuffle
 from math import exp
 from pprint import pprint
-# [item] -> [item]
+from extract_table import extract_table
+import os
 
 # type Tree item = (item, [Tree item])
 
@@ -48,12 +49,14 @@ def choose(n, sample):
 # step :: [Tree item] -> [Tree item]
 def step(xs, show=lambda x: str(fst(x))):
     shuffle(xs)
+    # extract sample from xs
     n = randint(2, func(len(xs)))
     choices = take(n, xs)
     remains = drop(n, xs)
-    ns, ss, fs = make_options(choices, remains, show)
     # create dictionary for input to function
+    ns, ss, fs = make_options(choices, remains, show)
     selection_dictionary = {str(n): f for n,f in zip(ns, fs)}
+    # display menu and as for input
     print("\nMake a choice")
     for i, x in zip(ns, ss):
         print(i, x, sep=": ")
@@ -118,14 +121,27 @@ def continue_from_file(filename, show=lambda x: str(fst(x))):
     if any(map(is_list_of_trees, output)):
         with open(filename, "w") as f:
             f.write(str(output))
+    else:
+        with open("output.txt", "w") as f:
+            f.write(str(output))
+        os.remove(filename)
     return output
 
 # adaptive sample size
 # parameters estimated thorough trial and error
 func = lambda m: int(10 - 8*exp(-(m-2)/20))
 
+def main():
+    if os.path.exists("save.txt"):
+        print("Continuing from save.txt\n")
+        return continue_from_file("save.txt",
+                                  show=lambda x: str(fst(x)["Project Title"]))
+    else:
+        print("Starting new save.txt\n")
+        return decider(extract_table("table.html"),
+                       show=lambda x: (fst(x)["Project Title"]))
+
 if __name__ == '__main__':
-    from extract_table import extract_table
     # selectables = [
     #     "asdf1",
     #     "asdf2",
@@ -141,4 +157,4 @@ if __name__ == '__main__':
     #     "asdf12",
     # ]
     # print(decider(selectables))
-    print(decider(extract_table("table.html"), show=lambda x: (fst(x)["Project Title"])))
+    print(main())
