@@ -37,12 +37,14 @@ Make a choice
 1: Apples
 2: Pears
 ...
+dN: Delete Item
 dd: Delete All
 p: Pass
 q: Quit
 r: Random
 c: Current State
 ```
+- `Delete Item` removes a single item from the list.
 - `Delete All` removes the sample from the list.
 - `Pass` puts the sample back in the list.
 - `Quit` discards the sample and the remaining nodes and the decider will return a list that only consists of items whose rank has been confirmed (the top ranked items).

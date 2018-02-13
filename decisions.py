@@ -3,6 +3,7 @@ from math import exp
 from pprint import pprint
 from extract_table import extract_table
 import os
+import re
 
 # type Tree item = (item, [Tree item])
 
@@ -46,6 +47,11 @@ def choose(n, sample):
     parent = sample.pop(n)
     return add_children(parent, sample)
 
+def _delete(n, sample):
+    sample = sample.copy()
+    sample.pop(n)
+    return sample
+
 # step :: [Tree item] -> [Tree item]
 def step(xs, show=lambda x: str(fst(x))):
     shuffle(xs)
@@ -55,7 +61,7 @@ def step(xs, show=lambda x: str(fst(x))):
     remains = drop(n, xs)
     # create dictionary for input to function
     ns, ss, fs = make_options(choices, remains, show)
-    selection_dictionary = {str(n): f for n,f in zip(ns, fs)}
+    # selection_dictionary = {str(n): f for n,f in zip(ns, fs)}
     # display menu and as for input
     print("\nMake a choice")
     for i, x in zip(ns, ss):
@@ -63,23 +69,53 @@ def step(xs, show=lambda x: str(fst(x))):
     while True:
         op = input("> ")
         try:
-            return selection_dictionary[op]()
+            # return selection_dictionary[op]()
+            return fs(op)
+            # TODO: Change this lazy dictionary of functions to a closure result
         except KeyError:
             print("Invalid Response!")
+        except KeyboardInterrupt:
+            pass
 
 # make_options :: [Tree item] -> ([Int], [Tree item], ?[Tree item])
+# def make_options(sample, remains, show=lambda x: str(fst(x))):
+#     ns = range(len(sample))
+#     ss = lmap(show, sample) + ["Delete All", "Pass", "Quit", "Random", "Current State"]
+#     fs = lmap(lambda n: (lambda: [choose(n, sample)] + remains), ns) + [
+#         lambda: remains,
+#         lambda: sample + remains,
+#         lambda: [],
+#         lambda: [choose(randint(0, len(sample) - 1), sample)] + remains,
+#         lambda: [pure(sample + remains)]
+#     ]
+#     ns = lmap(str, ns) + ["dd", "p", "q", "r", "c"]
+#     return ns, ss, fs
+
 def make_options(sample, remains, show=lambda x: str(fst(x))):
     ns = range(len(sample))
-    ss = lmap(show, sample) + ["Delete All", "Pass", "Quit", "Random", "Current State"]
-    fs = lmap(lambda n: (lambda: [choose(n, sample)] + remains), ns) + [
-        lambda: remains,
-        lambda: sample + remains,
-        lambda: [],
-        lambda: [choose(randint(0, len(sample) - 1), sample)] + remains,
-        lambda: [pure(sample + remains)]
-    ]
-    ns = lmap(str, ns) + ["dd", "p", "q", "r", "c"]
-    return ns, ss, fs
+    ss = lmap(show, sample) + ["Delete Item", "Delete All", "Pass", "Quit",
+                               "Random", "Current State"]
+
+    def in_to_uit(op):
+        if re.fullmatch(r"^[0-" + str(len(sample) - 1) + r"]$", op):
+            return [choose(int(op), sample)] + remains
+        elif re.fullmatch(r"^d[0-" + str(len(sample) - 1) + r"]$", op):
+            return _delete(int(op[1:]), sample) + remains
+        elif re.fullmatch(r"^dd$", op):
+            return remains
+        elif re.fullmatch(r"^p$", op):
+            return sample + remains
+        elif re.fullmatch(r"^q$", op):
+            return []
+        elif re.fullmatch(r"^r$", op):
+            return [choose(randint(0, len(sample) - 1), sample)] + remains
+        elif re.fullmatch(r"^c$", op):
+            return [pure(sample + remains)]
+        else:
+            raise KeyError
+
+    ns = lmap(str, ns) + ["dN", "dd", "p", "q", "r", "c"]
+    return ns, ss, in_to_uit
 
 def list_to_link(xs, show=lambda x: str(fst(x)), depth=0):
     print("Current depth:", depth)
